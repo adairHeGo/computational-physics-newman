@@ -1,0 +1,14 @@
+import vpython as vp
+
+#######Exercise 3.4
+
+#b)
+
+L = 5
+R = 0.3
+
+for i in range(-L, L+1):
+    for j in range(-L, L+1):
+        for k in range(-L, L+1):
+            vp.sphere(pos=vp.vector(i,j,k), radius=R)
+            
