@@ -1,0 +1,120 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import vpython as vp
+
+G = 1
+m1 = 150
+m2 = 200
+m3 = 250
+
+def f(r,t):
+    x1 = r[0]
+    vx1 = r[1]
+    y1 = r[2]
+    vy1 = r[3]
+    x2 = r[4]
+    vx2 = r[5]
+    y2 = r[6]
+    vy2 = r[7]
+    x3 = r[8]
+    vx3 = r[9]
+    y3 = r[10]
+    vy3 = r[11]
+    
+    fx1 = vx1
+    fx2 = vx2
+    fx3 = vx3
+    fy1 = vy1
+    fy2 = vy2
+    fy3 = vy3
+    
+    fvx1 = G*m2*(x2-x1)/(np.sqrt((x2-x1)**2 + (y2-y1)**2)**3) + G*m3*(x3-x1)/(np.sqrt((x3-x1)**2 + (y3-y1)**2)**3) 
+    fvx2 = G*m1*(x1-x2)/(np.sqrt((x2-x1)**2 + (y2-y1)**2)**3) + G*m3*(x3-x2)/(np.sqrt((x3-x2)**2 + (y3-y2)**2)**3)
+    fvx3 = G*m2*(x2-x3)/(np.sqrt((x2-x3)**2 + (y2-y3)**2)**3) + G*m1*(x1-x3)/(np.sqrt((x3-x1)**2 + (y3-y1)**2)**3)
+    
+    
+    fvy1 = G*m2*(y2-y1)/(np.sqrt((x2-x1)**2 + (y2-y1)**2)**3) + G*m3*(y3-y1)/(np.sqrt((x3-x1)**2 + (y3-y1)**2)**3) 
+    fvy2 = G*m1*(y1-y2)/(np.sqrt((x2-x1)**2 + (y2-y1)**2)**3) + G*m3*(y3-y2)/(np.sqrt((x3-x2)**2 + (y3-y2)**2)**3)
+    fvy3 = G*m2*(y2-y3)/(np.sqrt((x2-x3)**2 + (y2-y3)**2)**3) + G*m1*(y1-y3)/(np.sqrt((x3-x1)**2 + (y3-y1)**2)**3)
+    
+    return np.array([fx1,fvx1,fy1,fvy1,fx2,fvx2,fy2,fvy2,fx3,fvx3,fy3,fvy3], float)
+
+v = np.array([3, 0, 1, 0, -1, 0, -2, 0, -1, 0, 1, 0], float)
+
+tf = 10.0
+tpoints = [0.0]
+x1points = []
+y1points = []
+x2points = []
+y2points = []
+x3points = []
+y3points = []
+
+h = 1e-1
+delta = 1e-7 #m/s
+
+while tpoints[-1] < tf:
+    x1points.append(v[0])
+    y1points.append(v[2])
+    x2points.append(v[4])
+    y2points.append(v[6])
+    x3points.append(v[8])
+    y3points.append(v[10])
+    
+    v1 = v.copy()
+    v2 = v.copy()
+    t = tpoints[-1]
+    for i in range(2):
+        k1 = h*f(v1, t + h)
+        k2 = h*f(v1 + 0.5*k1, t + 0.5*h + h)
+        k3 = h*f(v1 + 0.5*k2, t + 0.5*h + h)
+        k4 = h*f(v1 + k3, t + h + h)
+        v1 += (k1 + 2*k2 + 2*k3 + k4)/6
+        t += h
+    k1 = 2*h*f(v2, t)
+    k2 = 2*h*f(v2 + 0.5*k1, t + 0.5*h )
+    k3 = 2*h*f(v2 + 0.5*k2, t + 0.5*h)
+    k4 = 2*h*f(v2 + k3, t + h )
+    v2 += (k1 + 2*k2 + 2*k3 + k4)/6
+    
+    epsilonx1 = (v1[0] - v2[0])/30
+    epsilony1 = (v1[2] - v2[2])/30
+    epsilonx2 = (v1[4] - v2[4])/30
+    epsilony2 = (v1[6] - v2[6])/30
+    epsilonx3 = (v1[8] - v2[8])/30
+    epsilony3 = (v1[10] - v2[10])/30
+    #print(np.sqrt(epsilonx1**2 + epsilony1**2 + epsilonx2**2 + epsilony2**2 + epsilonx3**2 + epsilony3**2))
+    rho = h*delta/np.sqrt(epsilonx1**2 + epsilony1**2 + epsilonx2**2 + epsilony2**2 + epsilonx3**2 + epsilony3**2)
+    if rho > 1:
+        v = v1.copy()
+        tpoints.append(tpoints[-1] + 2*h)
+        h *= rho**(1/4)
+    else:
+        h *= rho**(1/4)
+        t = tpoints[-1]
+        for i in range(2):
+            k1 = h*f(v1, t + h)
+            k2 = h*f(v1 + 0.5*k1, t + 0.5*h + h)
+            k3 = h*f(v1 + 0.5*k2, t + 0.5*h + h)
+            k4 = h*f(v1 + k3, t + h + h)
+            v1 += (k1 + 2*k2 + 2*k3 + k4)/6
+            t += h
+        v = v1.copy()
+        tpoints.append(tpoints[-1] + 2*h)
+
+#Animation
+C = 1e-6
+hmax = 1e-7
+mass1 = vp.sphere(pos=vp.vec(x1points[0],y1points[0],0),radius=0.05)
+mass2 = vp.sphere(pos=vp.vec(x2points[0],y2points[0],0),radius=0.05)
+mass3 = vp.sphere(pos=vp.vec(x3points[0],y3points[0],0),radius=0.05)
+
+for t in range(len(x1points)):
+    if tpoints[t+1]-tpoints[t]<hmax:
+        h = tpoints[t+1]-tpoints[t]
+    else:
+        h = hmax
+    vp.rate(C/h)
+    mass1.pos = vp.vec(x1points[t],y1points[t],0)
+    mass2.pos = vp.vec(x2points[t],y2points[t],0)
+    mass3.pos = vp.vec(x3points[t],y3points[t],0)

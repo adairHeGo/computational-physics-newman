@@ -1,0 +1,55 @@
+import numpy as np
+import vpython as vp
+import matplotlib.pyplot as plt
+
+l = 40e-2
+m = 1
+g = 9.81
+
+def f(r, t):
+    theta1 = r[0]
+    omega1 = r[1]
+    theta2 = r[2]
+    omega2 = r[3]
+    vt1 = omega1
+    do1 = -((omega1**2)*np.sin(2*theta1-2*theta2)+2*(omega2**2)*np.sin(theta1-theta2)+(g/l)*(np.sin(theta1-2*theta2)+3*np.sin(theta1)))/(3-np.cos(2*theta1-2*theta2))
+    vt2 = omega2
+    do2 = (4*(omega1**2)*np.sin(theta1-theta2)+(omega2**2)*np.sin(2*theta1-2*theta2)+2*(g/l)*(np.sin(2*theta1-theta2)-np.sin(theta2)))/(3-np.cos(2*theta1-2*theta2))
+    return np.array([vt1,do1,vt2,do2])
+
+v = np.array([np.pi/2, 0, np.pi/2, 0], float)
+
+tpoints = np.linspace(0, 100, 50000)
+t1points = []
+t2points = []
+h = tpoints[1] - tpoints[0]
+E = []
+
+for t in tpoints:
+    t1points.append(v[0])
+    t2points.append(v[2])
+    k1 = h*f(v, t)
+    k2 = h*f(v + 0.5*k1, t + 0.5*h)
+    k3 = h*f(v + 0.5*k2, t + 0.5*h)
+    k4 = h*f(v + k3, t + h)
+    v += (k1 + 2*k2 + 2*k3 + k4)/6
+    
+# Make an animation of the masses as they vibrate back and forth
+
+mass1 = vp.sphere(pos=vp.vec(-l*np.cos(t1points[0]),l*np.sin(t1points[0]),0),radius=0.05)
+
+mass2 = vp.sphere(pos=vp.vec(-l*np.cos(t2points[0])-l*np.cos(t1points[0]),l*np.sin(t2points[0])+l*np.sin(t1points[0]),0),radius=0.05)
+
+arm1 = vp.cylinder(pos=vp.vec(0,0,0), axis=vp.vec(-l*np.cos(t1points[0]),l*np.sin(t1points[0]),0), radius=0.01)
+
+
+arm2 = vp.cylinder(pos=vp.vec(-l*np.cos(t1points[0]),l*np.sin(t1points[0]),0), axis=vp.vec(-l*np.cos(t2points[0])-l*np.cos(t1points[0]),l*np.sin(t2points[0])+l*np.sin(t1points[0]),0), radius=0.01)
+
+for t in range(len(tpoints)):
+    vp.rate(100) 
+    mass1.pos = vp.vec(l*np.sin(t1points[t]),-l*np.cos(t1points[t]),0)
+    mass2.pos = vp.vec(l*np.sin(t2points[t])+l*np.sin(t1points[t]),-l*np.cos(t2points[t])-l*np.cos(t1points[t]),0)
+    arm1.axis = vp.vec(l*np.sin(t1points[t]),-l*np.cos(t1points[t]),0)
+    arm2.pos = vp.vec(l*np.sin(t1points[t]),-l*np.cos(t1points[t]),0)
+    #arm2.axis = vp.vec(l*np.sin(t2points[t])+l*np.sin(t1points[t]),-l*np.cos(t2#points[t])-l*np.cos(t1points[t]),0)
+    arm2.axis = vp.vec(l*np.sin(t2points[t]),-l*np.cos(t2points[t]),0)
