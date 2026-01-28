@@ -1,0 +1,46 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import vpython as vp
+
+L = 1e-8
+N = 1000
+a = L/N
+h = 1e-18
+m = 9.109e-31
+x0 = L/2
+sigma = 1e-10
+kappa = 5e10
+hbar = 1.054571817e-34
+a1 = 1 + 1j*h*hbar/(2*m*a**2)
+a2 = -1j*h*hbar/(4*m*a**2)
+b1 = 1 - 1j*h*hbar/(2*m*a**2)
+b2 = 1j*h*hbar/(4*m*a**2)
+
+psi = np.empty(N+1, complex)
+psi[0] = 0
+psi[N] = 0
+for i in range(1,N):
+    psi[i] = np.exp(-((i*a - x0)**2)/(2*sigma**2))*np.exp(1j*sigma*i*a)
+    
+A = np.zeros([N+1,N+1], complex)
+B = np.zeros([N+1,N+1], complex)
+A[0,0] = a1
+B[0,0] = b1
+for i in range(1,N+1):
+    A[i,i] = a1
+    B[i,i] = b1
+    A[i-1,i] = a2
+    A[i,i-1] = a2
+    B[i-1,i] = b2
+    B[i,i-1] = b2
+
+t = 0
+tend = 1e-16
+points = [vp.sphere(pos=vec(i,psi[i].real,0)) for i in range(N+1)]
+
+while t<tend:
+    v = B@psi
+    psi = np.linalg.solve(A,v)
+    t += h
+    for i in range(N+1):
+        points[i].pos = vec(i,psi[i].real,0) 
